@@ -2,51 +2,13 @@
 #include <array>
 #include <cstdlib>
 #include <iostream>
+#include <set>
 #include <vector>
 
 namespace {
 template <unsigned N>
 using Square = std::array<unsigned, N * N>;
-constexpr unsigned N = 3;
-
-bool is_magic(const Square<N>& square) {
-    constexpr unsigned invariant = (N * (N * N + 1)) / 2;
-    std::array<unsigned, N> line_sums = {0};
-    std::array<unsigned, N> col_sums = {0};
-    std::array<unsigned, 2> diag_sums = {0};
-
-    for (size_t i = 0; i < N; ++i) {
-        for (size_t j = 0; j < N; ++j) {
-            line_sums[i] += square[N * i + j];
-            col_sums[j] += square[N * i + j];
-            if (i == j) {
-                diag_sums[0] += square[N * i + j];
-            }
-            if (N - 1 - i == j) {
-                diag_sums[1] += square[N * i + j];
-            }
-        }
-    }
-
-    auto is_invariant = [](auto a) { return a == invariant; };
-    return std::all_of(col_sums.begin(), col_sums.end(), is_invariant) &&
-           std::all_of(line_sums.begin(), line_sums.end(), is_invariant) &&
-           std::all_of(diag_sums.begin(), diag_sums.end(), is_invariant);
-}
-
-Square<4> nondiagonal_permutation(const Square<4>& square) {
-    Square<4> result;
-    for (size_t i = 0; i < N; ++i) {
-        for (size_t j = 0; j < N; ++j) {
-            if (i != j && N - 1 - i != j) {
-                result[N * i + j] = N * N + 1 - square[N * i + j];
-            } else {
-                result[N * i + j] = square[N * i + j];
-            }
-        }
-    }
-    return result;
-}
+constexpr unsigned N = 4;
 
 void print_square(const Square<N>& square) {
     for (size_t i = 0; i < N; ++i) {
@@ -57,6 +19,69 @@ void print_square(const Square<N>& square) {
     }
     std::cout << std::endl;
 }
+
+bool possibly_magic(Square<N> square, size_t accepted_index) {
+    constexpr unsigned invariant = (N * (N * N + 1)) / 2;
+
+    // a new line is acceptable
+    if (accepted_index > 0 && accepted_index % N == 0) {
+        const size_t current_line = (accepted_index - 1) / N;
+        unsigned total = 0;
+        for (size_t x = 0; x < N; ++x) {
+            total += square[N * current_line + x];
+        }
+        if (total != invariant) {
+            return false;
+        }
+    }
+    // a new column is acceptable
+    if (accepted_index > N * N - N) {
+        const size_t current_column = (accepted_index - 1) - (N * N - N);
+        unsigned total = 0;
+        for (size_t y = 0; y < N; ++y) {
+            total += square[N * y + current_column];
+        }
+        if (total != invariant) {
+            return false;
+        }
+    }
+    // the NE-SW diagonal is acceptable
+    if (accepted_index == N * N - N + 1) {
+        unsigned total = 0;
+        for (size_t i = 0; i < N; ++i) {
+            total += square[N * (N - i - 1) + i];
+        }
+        if (total != invariant) {
+            return false;
+        }
+    }
+    // the NW-SE diagonal is acceptable
+    if (accepted_index == N * N) {
+        unsigned total = 0;
+        for (size_t i = 0; i < N; ++i) {
+            total += square[N * i + i];
+        }
+        if (total != invariant) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void magic_squares_rec(Square<N> current, size_t accepted_index, unsigned& magic) {
+    if (possibly_magic(current, accepted_index)) {
+        if (accepted_index >= N * N) {
+            print_square(current);
+            ++magic;
+            return;
+        }
+        // call for every first value in the remaining ones
+        for (size_t i = accepted_index; i < N * N; ++i) {
+            std::iter_swap(current.begin() + accepted_index, current.begin() + i);
+            magic_squares_rec(current, accepted_index + 1, magic);
+        }
+    }
+}
 }
 
 int main(void) {
@@ -64,10 +89,8 @@ int main(void) {
     for (unsigned i = 1; i <= N * N; ++i) {
         values[i - 1] = i;
     }
-    do {
-        if (is_magic(values)) {
-            print_square(values);
-        }
-    } while (std::next_permutation(values.begin(), values.end()));
+    unsigned total = 0;
+    magic_squares_rec(values, 0, total);
+    std::cout << "Total number of magic squares: " << total << std::endl;
     return 0;
 }
