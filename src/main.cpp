@@ -110,16 +110,21 @@ int main(void) {
 
     const unsigned concurrency = std::thread::hardware_concurrency();
     std::vector<std::thread> threads;
-    for (unsigned t = 0; t < concurrency; ++t) {
+    for (unsigned t = 1; t < concurrency; ++t) {
         threads.emplace_back(
-            [&total, &concurrency, t](Square<N> values) {
+                [concurrency, t](Square<N> values, unsigned & total) {
                 for (size_t i = t * ((N * N) / concurrency); i < (t + 1) * ((N * N) / concurrency);
-                     ++i) {
-                    std::iter_swap(values.begin(), values.begin() + i);
-                    magic_squares_rec(values, 1, std::ref(total));
+                        ++i) {
+                std::iter_swap(values.begin(), values.begin() + i);
+                magic_squares_rec(values, 1, std::ref(total));
                 }
-            },
-            values);
+                },
+                values, std::ref(total));
+    }
+    for (size_t i = 0; i < ((N * N) / concurrency);
+            ++i) {
+        std::iter_swap(values.begin(), values.begin() + i);
+        magic_squares_rec(values, 1, std::ref(total));
     }
     for (auto& t : threads) {
         t.join();
