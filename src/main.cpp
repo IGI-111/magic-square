@@ -20,6 +20,15 @@ void print_square(const Square<N>& square) {
     std::cout << std::endl;
 }
 
+void print_vector(const Square<N>& square) {
+    for (size_t i = 0; i < N; ++i) {
+        for (size_t j = 0; j < N; ++j) {
+            std::cout << square[N * i + j] << ' ';
+        }
+    }
+    std::cout << std::endl;
+}
+
 bool possibly_magic(Square<N> square, size_t accepted_index) {
     constexpr unsigned invariant = (N * (N * N + 1)) / 2;
 
@@ -70,9 +79,16 @@ bool possibly_magic(Square<N> square, size_t accepted_index) {
 
 void magic_squares_rec(Square<N> current, size_t accepted_index, unsigned& magic) {
     if (possibly_magic(current, accepted_index)) {
-        if (accepted_index >= N * N) {
-            print_square(current);
-            ++magic;
+        if (accepted_index >= (N * N) - 1 ) {
+            ++accepted_index;
+            // last cutoff is unnecessary because we have a multiplicity of one
+            if(possibly_magic(current, accepted_index)){
+                    // print_square(current);
+                    ++magic;
+                    std::cout << magic << " - ";
+                    print_vector(current);
+                    return;
+            }
             return;
         }
         // call for every first value in the remaining ones
@@ -94,3 +110,4 @@ int main(void) {
     std::cout << "Total number of magic squares: " << total << std::endl;
     return 0;
 }
+
