@@ -9,7 +9,7 @@
 namespace {
 template <unsigned N>
 using Square = std::array<unsigned, N * N>;
-constexpr unsigned N = 3;
+constexpr unsigned N = 4;
 
 void print_square(const Square<N>& square) {
     for (size_t i = 0; i < N; ++i) {
@@ -28,16 +28,6 @@ void print_vector(const Square<N>& square) {
         }
     }
     std::cout << std::endl;
-}
-
-Square<N> rotate(const Square<N>& square) {
-    Square<N> result;
-    for (size_t i = 0; i < N; ++i) {
-        for (size_t j = 0; j < N; ++j) {
-            result[N * (N - 1 - j) + i] = square[N * i + j];
-        }
-    }
-    return result;
 }
 
 bool possibly_magic(Square<N> square, size_t accepted_index) {
@@ -94,12 +84,10 @@ void magic_squares_rec(Square<N> current, size_t accepted_index, unsigned& magic
             ++accepted_index;
             // last cutoff is unnecessary because we have a multiplicity of one
             if (possibly_magic(current, accepted_index)) {
-                for (unsigned i = 0; i < 4; ++i) {
-                    ++magic;
-                    std::cout << magic << " - ";
-                    print_vector(current);
-                    current = rotate(current);
-                }
+                // print_square(current);
+                ++magic;
+                std::cout << magic << " - ";
+                print_vector(current);
                 return;
             }
             return;
@@ -119,22 +107,22 @@ int main(void) {
         values[i - 1] = i;
     }
     unsigned total = 0;
-    constexpr unsigned cardinality = N * N;
 
     const unsigned concurrency = std::thread::hardware_concurrency();
     std::vector<std::thread> threads;
     for (unsigned t = 1; t < concurrency; ++t) {
         threads.emplace_back(
-            [cardinality, concurrency, t](Square<N> values, unsigned& total) {
-                for (size_t i = t * ((cardinality / 4) / concurrency);
-                     i < (t + 1) * ((cardinality / 4) / concurrency); ++i) {
-                    std::iter_swap(values.begin(), values.begin() + i);
-                    magic_squares_rec(values, 1, std::ref(total));
+                [concurrency, t](Square<N> values, unsigned & total) {
+                for (size_t i = t * ((N * N) / concurrency); i < (t + 1) * ((N * N) / concurrency);
+                        ++i) {
+                std::iter_swap(values.begin(), values.begin() + i);
+                magic_squares_rec(values, 1, std::ref(total));
                 }
-            },
-            values, std::ref(total));
+                },
+                values, std::ref(total));
     }
-    for (size_t i = 0; i < ((cardinality / 4) / concurrency); ++i) {
+    for (size_t i = 0; i < ((N * N) / concurrency);
+            ++i) {
         std::iter_swap(values.begin(), values.begin() + i);
         magic_squares_rec(values, 1, std::ref(total));
     }
