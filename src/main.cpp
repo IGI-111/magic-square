@@ -30,7 +30,7 @@ void print_vector(const Square<N>& square) {
     std::cout << std::endl;
 }
 
-bool possibly_magic(Square<N> square, size_t accepted_index) {
+bool possibly_magic(const Square<N> &square, size_t accepted_index) {
     constexpr unsigned invariant = (N * (N * N + 1)) / 2;
 
     // a new line is acceptable
