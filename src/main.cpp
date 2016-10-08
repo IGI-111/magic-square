@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <set>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -79,15 +80,15 @@ bool possibly_magic(Square<N> square, size_t accepted_index) {
 
 void magic_squares_rec(Square<N> current, size_t accepted_index, unsigned& magic) {
     if (possibly_magic(current, accepted_index)) {
-        if (accepted_index >= (N * N) - 1 ) {
+        if (accepted_index >= (N * N) - 1) {
             ++accepted_index;
             // last cutoff is unnecessary because we have a multiplicity of one
-            if(possibly_magic(current, accepted_index)){
-                    // print_square(current);
-                    ++magic;
-                    std::cout << magic << " - ";
-                    print_vector(current);
-                    return;
+            if (possibly_magic(current, accepted_index)) {
+                // print_square(current);
+                ++magic;
+                std::cout << magic << " - ";
+                print_vector(current);
+                return;
             }
             return;
         }
@@ -106,8 +107,23 @@ int main(void) {
         values[i - 1] = i;
     }
     unsigned total = 0;
-    magic_squares_rec(values, 0, total);
+
+    const unsigned concurrency = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads;
+    for (unsigned t = 0; t < concurrency; ++t) {
+        threads.emplace_back(
+            [&total, &concurrency, t](Square<N> values) {
+                for (size_t i = t * ((N * N) / concurrency); i < (t + 1) * ((N * N) / concurrency);
+                     ++i) {
+                    std::iter_swap(values.begin(), values.begin() + i);
+                    magic_squares_rec(values, 1, std::ref(total));
+                }
+            },
+            values);
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
     std::cout << "Total number of magic squares: " << total << std::endl;
     return 0;
 }
-
